@@ -67,7 +67,7 @@ function App() {
                 <div key={index} className="name">
                   {n.name}
                   <button onClick={() => moveUp(names.indexOf(n))}>⬇</button>
-                  <button onClick={() => moveDown(names.indexOf(n))}>⬇⬆</button>
+                  <button onClick={() => moveDown(names.indexOf(n))}>⬆</button>
                   <button onClick={() => deleteName(names.indexOf(n))}>🗑</button>
                 </div>
               ))}
