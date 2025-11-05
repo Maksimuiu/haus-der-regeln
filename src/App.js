@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
-import { initializeApp } from 'firebase/app';
-import { getDatabase, ref, onValue, set } from 'firebase/database';
+import { initializeApp } from "firebase/app";
+import { getDatabase, ref, onValue, set } from "firebase/database";
 
-// === Firebase Config (dein eigener Key hier!) ===
+// Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyDv-tfcJVlzosE-JD1NY26AnTQfSIx9DwI",
   authDomain: "haus-der-regeln.firebaseapp.com",
@@ -11,10 +11,9 @@ const firebaseConfig = {
   projectId: "haus-der-regeln",
   storageBucket: "haus-der-regeln.firebasestorage.app",
   messagingSenderId: "249015317662",
-  appId: "1:249015317662:web:b58e533e796bd24a6bf78f"
+  appId: "1:249015317662:web:b58e533e796bd24a6bf78f",
 };
 
-// === Initialisierung ===
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
@@ -25,37 +24,83 @@ const levels = [
   { color: 'darkred', label: '3.ZA' },
 ];
 
-// === Zwei gültige Passwörter ===
-const VALID_PASSWORDS = ["A129cas7fa", "4379"];
+// Startpasswörter
+const START_PASSWORDS = [
+  { value: "ddwn", hidden: false },
+  { value: "4379", hidden: true } // unsichtbar
+];
 
 function App() {
   const [names, setNames] = useState([]);
   const [newName, setNewName] = useState('');
-  const [authenticated, setAuthenticated] = useState(false);
+  const [passwords, setPasswords] = useState([]);
   const [inputPassword, setInputPassword] = useState('');
+  const [authenticated, setAuthenticated] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
 
-  // === Daten in Echtzeit abrufen ===
+  // Daten aus Firebase laden
   useEffect(() => {
+    const passwordsRef = ref(db, 'passwords');
+    onValue(passwordsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        setPasswords(data);
+      } else {
+        set(ref(db, 'passwords'), START_PASSWORDS);
+        setPasswords(START_PASSWORDS);
+      }
+    });
+
     const namesRef = ref(db, 'names');
     onValue(namesRef, (snapshot) => {
       const data = snapshot.val();
-      if (data) {
-        setNames(data);
-      } else {
-        setNames([]);
-      }
+      setNames(data || []);
     });
   }, []);
 
-  // === Änderungen speichern ===
-  const updateNames = (updated) => {
-    set(ref(db, 'names'), updated);
+  const updatePasswords = (updated) => set(ref(db, 'passwords'), updated);
+  const updateNames = (updated) => set(ref(db, 'names'), updated);
+
+  // Login-Funktion
+  const handleLogin = () => {
+    if (!passwords || passwords.length === 0) {
+      alert("Passwörter werden geladen, bitte warten...");
+      return;
+    }
+
+    const trimmedInput = inputPassword.trim();
+    const valid = passwords.some(p => p && p.value === trimmedInput);
+
+    if (valid) {
+      setAuthenticated(true);
+    } else {
+      alert("Falsches Passwort!");
+    }
   };
 
+  // Passwortverwaltung
+  const addPassword = () => {
+    if (!newPassword.trim()) return;
+    updatePasswords([...passwords, { value: newPassword.trim(), hidden: false }]);
+    setNewPassword('');
+  };
+
+  const deletePassword = (index) => {
+    const updated = [...passwords];
+    updated.splice(index, 1);
+    updatePasswords(updated);
+  };
+
+  const changePassword = (index, newVal) => {
+    const updated = [...passwords];
+    updated[index].value = newVal;
+    updatePasswords(updated);
+  };
+
+  // Namenverwaltung
   const addName = () => {
-    if (newName.trim() === '') return;
-    const updated = [...names, { name: newName, level: 0 }];
-    updateNames(updated);
+    if (!newName.trim()) return;
+    updateNames([...names, { name: newName.trim(), level: 0 }]);
     setNewName('');
   };
 
@@ -81,15 +126,6 @@ function App() {
     }
   };
 
-  // === Passwortprüfung ===
-  const handleLogin = () => {
-    if (VALID_PASSWORDS.includes(inputPassword)) {
-      setAuthenticated(true);
-    } else {
-      alert("Falsches Passwort!");
-    }
-  };
-
   if (!authenticated) {
     return (
       <div className="App">
@@ -108,6 +144,36 @@ function App() {
   return (
     <div className="App">
       <h1>Haus der Regeln</h1>
+
+      <div className="dashboard">
+        <h2>Passwörter verwalten</h2>
+        {passwords.map((p, i) => (
+          <div key={i} className="password-item">
+            {p.hidden ? (
+              <span></span>
+            ) : (
+              <input
+                type="text"
+                value={p.value}
+                onChange={(e) => changePassword(i, e.target.value)}
+              />
+            )}
+            {!p.hidden && (
+              <button onClick={() => deletePassword(i)}>🗑</button>
+            )}
+          </div>
+        ))}
+        <div>
+          <input
+            type="text"
+            placeholder="Neues Passwort"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+          />
+          <button onClick={addPassword}>Hinzufügen</button>
+        </div>
+      </div>
+
       <div className="input-section">
         <input
           value={newName}
@@ -116,9 +182,14 @@ function App() {
         />
         <button onClick={addName}>Hinzufügen</button>
       </div>
+
       <div className="house">
         {levels.map((level, levelIndex) => (
-          <div key={level.color} className="floor" style={{ backgroundColor: level.color }}>
+          <div
+            key={level.color}
+            className="floor"
+            style={{ backgroundColor: level.color }}
+          >
             <h2>{level.label}</h2>
             {names
               .filter((n) => n.level === levelIndex)
