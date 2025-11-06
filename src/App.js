@@ -24,10 +24,9 @@ const levels = [
   { color: 'darkred', label: '2.ZA' },
 ];
 
-// Startpasswörter
 const START_PASSWORDS = [
   { value: "ddwn", hidden: false },
-  { value: "4379", hidden: true } // unsichtbar
+  { value: "4379", hidden: true }
 ];
 
 function App() {
@@ -37,8 +36,8 @@ function App() {
   const [inputPassword, setInputPassword] = useState('');
   const [authenticated, setAuthenticated] = useState(false);
   const [newPassword, setNewPassword] = useState('');
+  const [showPasswordMenu, setShowPasswordMenu] = useState(false);
 
-  // Daten aus Firebase laden
   useEffect(() => {
     const passwordsRef = ref(db, 'passwords');
     onValue(passwordsRef, (snapshot) => {
@@ -61,7 +60,7 @@ function App() {
   const updatePasswords = (updated) => set(ref(db, 'passwords'), updated);
   const updateNames = (updated) => set(ref(db, 'names'), updated);
 
-  // Login-Funktion
+  // Login
   const handleLogin = () => {
     if (!passwords || passwords.length === 0) {
       alert("Passwörter werden geladen, bitte warten...");
@@ -126,6 +125,12 @@ function App() {
     }
   };
 
+  // ✅ RESET BUTTON: Alle Namen auf Grün (Level 0)
+  const resetAllLevels = () => {
+    const updated = names.map(n => ({ ...n, level: 0 }));
+    updateNames(updated);
+  };
+
   if (!authenticated) {
     return (
       <div className="App">
@@ -145,33 +150,38 @@ function App() {
     <div className="App">
       <h1>Haus der Regeln</h1>
 
-      <div className="dashboard">
-        <h2>Passwörter verwalten</h2>
-        {passwords.map((p, i) => (
-          <div key={i} className="password-item">
-            {p.hidden ? (
-              <span></span>
-            ) : (
+      {/* Dropdown Menü für Passwortfunktionen */}
+      <div className="dropdown">
+        <button onClick={() => setShowPasswordMenu(!showPasswordMenu)}>
+          🔑 Passwort-Optionen ▼
+        </button>
+        {showPasswordMenu && (
+          <div className="dropdown-content">
+            {passwords.map((p, i) => (
+              <div key={i} className="password-item">
+                {!p.hidden && (
+                  <>
+                    <input
+                      type="text"
+                      value={p.value}
+                      onChange={(e) => changePassword(i, e.target.value)}
+                    />
+                    <button onClick={() => deletePassword(i)}>🗑</button>
+                  </>
+                )}
+              </div>
+            ))}
+            <div>
               <input
                 type="text"
-                value={p.value}
-                onChange={(e) => changePassword(i, e.target.value)}
+                placeholder="Neues Passwort"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
               />
-            )}
-            {!p.hidden && (
-              <button onClick={() => deletePassword(i)}>🗑</button>
-            )}
+              <button onClick={addPassword}>Hinzufügen</button>
+            </div>
           </div>
-        ))}
-        <div>
-          <input
-            type="text"
-            placeholder="Neues Passwort"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-          />
-          <button onClick={addPassword}>Hinzufügen</button>
-        </div>
+        )}
       </div>
 
       <div className="input-section">
@@ -181,6 +191,10 @@ function App() {
           placeholder="Name hinzufügen"
         />
         <button onClick={addName}>Hinzufügen</button>
+        {/*  Reset Button */}
+        <button onClick={resetAllLevels} style={{ marginLeft: '10px', backgroundColor: '#4CAF50', color: 'white' }}>
+           Alle auf Grün
+        </button>
       </div>
 
       <div className="house">
