@@ -19,9 +19,9 @@ const db = getDatabase(app);
 
 const levels = [
   { color: 'green', label: '' },
-  { color: 'orange', label: '1.ZA' },
-  { color: 'red', label: '2.ZA' },
-  { color: 'darkred', label: '3.ZA' },
+  { color: 'orange', label: 'Warnung' },
+  { color: 'red', label: '1.ZA' },
+  { color: 'darkred', label: '2.ZA' },
 ];
 
 // Startpasswörter
